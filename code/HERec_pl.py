@@ -1,13 +1,18 @@
 #!/usr/bin/python
-#encoding=utf-8
+# encoding=utf-8
 import numpy as np
 import time
 import random
-from math import sqrt,fabs,log
+from math import sqrt, fabs, log
 import sys
+import os
+print(os.getcwd())
+if(os.getcwd().split("/")[-1] != "code"):
+    os.chdir("code")
 
 class HNERec:
-    def __init__(self, unum, inum, ratedim, userdim, itemdim, user_metapaths,item_metapaths, trainfile, testfile, steps, delta, beta_e, beta_h, beta_p, beta_w, beta_b, reg_u, reg_v):
+    def __init__(self, unum, inum, ratedim, userdim, itemdim, user_metapaths, item_metapaths, trainfile, testfile,
+                 steps, delta, beta_e, beta_h, beta_p, beta_w, beta_b, reg_u, reg_v):
         self.unum = unum
         self.inum = inum
         self.ratedim = ratedim
@@ -27,15 +32,15 @@ class HNERec:
         self.item_metapathnum = len(item_metapaths)
 
         self.X, self.user_metapathdims = self.load_embedding(user_metapaths, unum)
-        print 'Load user embeddings finished.'
+        print('Load user embeddings finished.')
 
         self.Y, self.item_metapathdims = self.load_embedding(item_metapaths, inum)
-        print 'Load user embeddings finished.'
+        print('Load user embeddings finished.')
 
         self.R, self.T, self.ba = self.load_rating(trainfile, testfile)
-        print 'Load rating finished.'
-        print 'train size : ', len(self.R)
-        print 'test size : ', len(self.T) 
+        print('Load rating finished.')
+        print('train size : ', len(self.R))
+        print('test size : ', len(self.T))
 
         self.initialize();
         self.recommend();
@@ -45,13 +50,13 @@ class HNERec:
         for i in range(num):
             X[i] = {}
         metapathdims = []
-    
+
         ctn = 0
         for metapath in metapaths:
             sourcefile = '../data/embeddings/' + metapath
-            #print sourcefile
+            # print sourcefile
             with open(sourcefile) as infile:
-                
+
                 k = int(infile.readline().strip().split(' ')[1])
                 metapathdims.append(k)
                 for i in range(num):
@@ -64,7 +69,7 @@ class HNERec:
                     i = int(arr[0]) - 1
                     for j in range(k):
                         X[i][ctn][j] = float(arr[j + 1])
-                print 'metapath ', metapath, 'numbers ', n
+                print('metapath ', metapath, 'numbers ', n)
             ctn += 1
         return X, metapathdims
 
@@ -77,7 +82,7 @@ class HNERec:
         with open(trainfile) as infile:
             for line in infile.readlines():
                 user, item, rating = line.strip().split('\t')
-                R_train.append([int(user)-1, int(item)-1, int(rating)])
+                R_train.append([int(user) - 1, int(item) - 1, int(rating)])
                 ba += int(rating)
                 n += 1
         ba = ba / n
@@ -85,7 +90,7 @@ class HNERec:
         with open(testfile) as infile:
             for line in infile.readlines():
                 user, item, rating = line.strip().split('\t')
-                R_test.append([int(user)-1, int(item)-1, int(rating)])
+                R_test.append([int(user) - 1, int(item) - 1, int(rating)])
 
         return R_train, R_test, ba
 
@@ -97,7 +102,6 @@ class HNERec:
 
         self.pu = np.ones((self.unum, self.user_metapathnum)) * 1.0 / self.user_metapathnum
         self.pv = np.ones((self.inum, self.item_metapathnum)) * 1.0 / self.item_metapathnum
-
 
         self.Wu = {}
         self.bu = {}
@@ -168,7 +172,7 @@ class HNERec:
                 rij_t = self.get_rating(i, j)
                 eij = rij - rij_t
                 total_error += eij * eij
-                
+
                 U_g = -eij * self.V[j, :] + self.beta_e * self.U[i, :]
                 V_g = -eij * self.U[i, :] + self.beta_h * self.V[j, :]
 
@@ -177,8 +181,10 @@ class HNERec:
 
                 ui = self.cal_u(i)
                 for k in range(self.user_metapathnum):
-                    pu_g = self.reg_u * -eij * self.H[j, :].dot(self.Wu[k].dot(self.X[i][k]) + self.bu[k]) + self.beta_p * self.pu[i][k]
-                    Wu_g = self.reg_u * -eij * self.pu[i][k] * np.array([self.H[j, :]]).T.dot(np.array([self.X[i][k]])) + self.beta_w * self.Wu[k]
+                    pu_g = self.reg_u * -eij * self.H[j, :].dot(
+                        self.Wu[k].dot(self.X[i][k]) + self.bu[k]) + self.beta_p * self.pu[i][k]
+                    Wu_g = self.reg_u * -eij * self.pu[i][k] * np.array([self.H[j, :]]).T.dot(
+                        np.array([self.X[i][k]])) + self.beta_w * self.Wu[k]
                     bu_g = self.reg_u * -eij * self.pu[i][k] * self.H[j, :] + self.beta_b * self.bu[k]
 
                     self.pu[i][k] -= 0.1 * self.delta * pu_g
@@ -190,8 +196,10 @@ class HNERec:
 
                 vj = self.cal_v(j)
                 for k in range(self.item_metapathnum):
-                    pv_g = self.reg_v * -eij * self.E[i, :].dot(self.Wv[k].dot(self.Y[j][k]) + self.bv[k]) + self.beta_p * self.pv[j][k]
-                    Wv_g = self.reg_v * -eij * self.pv[j][k] * np.array([self.E[i, :]]).T.dot(np.array([self.Y[j][k]])) + self.beta_w * self.Wv[k]
+                    pv_g = self.reg_v * -eij * self.E[i, :].dot(
+                        self.Wv[k].dot(self.Y[j][k]) + self.bv[k]) + self.beta_p * self.pv[j][k]
+                    Wv_g = self.reg_v * -eij * self.pv[j][k] * np.array([self.E[i, :]]).T.dot(
+                        np.array([self.Y[j][k]])) + self.beta_w * self.Wv[k]
                     bv_g = self.reg_v * -eij * self.pv[j][k] * self.E[i, :] + self.beta_b * self.bv[k]
 
                     self.pv[j][k] -= 0.1 * self.delta * pv_g
@@ -206,28 +214,29 @@ class HNERec:
 
             self.delta = 0.93 * self.delta
 
-            if(abs(perror - cerror) < 0.0001):
+            if (abs(perror - cerror) < 0.0001):
                 break
-            print 'step ', step, 'crror : ', sqrt(cerror)
+            print('step ', step, 'crror : ', sqrt(cerror))
             train_end_time = time.time()
-            print 'train time : ', (train_end_time - train_start_time)
+            print('train time : ', (train_end_time - train_start_time))
             MAE, RMSE = self.maermse()
             mae.append(MAE)
             rmse.append(RMSE)
-            #if step % 5 == 0:
-            print 'step, MAE, RMSE ', step, MAE, RMSE
+            # if step % 5 == 0:
+            print('step, MAE, RMSE ', step, MAE, RMSE)
             test_time = time.time()
-            print 'time: ', test_time - train_end_time
-        print 'MAE: ', min(mae), ' RMSE: ', min(rmse)
+            print('time: ', test_time - train_end_time)
+        print('MAE: ', min(mae), ' RMSE: ', min(rmse))
+
 
 if __name__ == "__main__":
     unum = 16239
     inum = 14284
-    ratedim = 10#int(sys.argv[1])
+    ratedim = 10  # int(sys.argv[1])
     userdim = 30
     itemdim = 10
     train_rate = 0.8
-    
+
     user_metapaths = ['ubu', 'ubcibu', 'ubcabu']
     item_metapaths = ['bub', 'bcib', 'bcab']
 
@@ -236,10 +245,10 @@ if __name__ == "__main__":
     for i in range(len(item_metapaths)):
         item_metapaths[i] += '_' + str(train_rate) + '.embedding'
 
-    #user_metapaths = ['ubu_' + str(train_rate) +'.embedding', 'ubcibu_''.embedding', 'ubcabu_0.8.embedding']
-    
-    #item_metapaths = ['bub_0.8.embedding', 'bcib_0.8.embedding', 'bcab_0.8.embedding']
-    trainfile = '../data/ub_' + str(train_rate) +'.train'
+    # user_metapaths = ['ubu_' + str(train_rate) +'.embedding', 'ubcibu_''.embedding', 'ubcabu_0.8.embedding']
+
+    # item_metapaths = ['bub_0.8.embedding', 'bcib_0.8.embedding', 'bcab_0.8.embedding']
+    trainfile = '../data/ub_' + str(train_rate) + '.train'
     testfile = '../data/ub_' + str(train_rate) + '.test'
     steps = 100
     delta = 0.01
@@ -250,9 +259,11 @@ if __name__ == "__main__":
     beta_b = 0.01
     reg_u = 1.0
     reg_v = 1.0
-    print 'train_rate: ', train_rate
-    print 'ratedim: ', ratedim, ' userdim: ', userdim, ' itemdim: ', itemdim
-    print 'max_steps: ', steps
-    print 'delta: ', delta, 'beta_e: ', beta_e, 'beta_h: ', beta_h, 'beta_p: ', beta_p, 'beta_w: ', beta_w, 'beta_b', beta_b, 'reg_u', reg_u, 'reg_v', reg_v
+    print('train_rate: ', train_rate)
+    print('ratedim: ', ratedim, ' userdim: ', userdim, ' itemdim: ', itemdim)
+    print('max_steps: ', steps)
+    print('delta: ', delta, 'beta_e: ', beta_e, 'beta_h: ', beta_h, 'beta_p: ', beta_p, 'beta_w: ', beta_w, 'beta_b',
+          beta_b, 'reg_u', reg_u, 'reg_v', reg_v)
 
-    HNERec(unum, inum, ratedim, userdim, itemdim, user_metapaths, item_metapaths, trainfile, testfile, steps, delta, beta_e, beta_h, beta_p, beta_w, beta_b, reg_u, reg_v)
+    HNERec(unum, inum, ratedim, userdim, itemdim, user_metapaths, item_metapaths, trainfile, testfile, steps, delta,
+           beta_e, beta_h, beta_p, beta_w, beta_b, reg_u, reg_v)

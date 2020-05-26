@@ -1,5 +1,7 @@
 import os
-
+print(os.getcwd())
+if(os.getcwd().split("/")[-1] != "code"):
+    os.chdir("code")
 train_rate = 0.8
 dim = 128
 walk_len = 5
@@ -9,13 +11,13 @@ num_walk = 10
 metapaths = ['ubu', 'ubcabu', 'ubcibu', 'bub', 'bcab', 'bcib']
 
 for metapath in metapaths:
-	metapath = metapath + '_' + str(train_rate)
-	input_file = '../data/metapath/' + metapath + '.txt'
-	output_file = '../data/embeddings/' + metapath + '.embedding'
+    metapath = metapath + '_' + str(train_rate)
+    input_file = '../data/metapath/' + metapath + '.txt'
+    output_file = '../data/embeddings/' + metapath + '.embedding'
 
-	cmd = 'deepwalk --format edgelist --input ' + input_file + ' --output ' + output_file + \
-	      ' --walk-length ' + str(walk_len) + ' --window-size ' + str(win_size) + ' --number-walks '\
-	       + str(num_walk) + ' --representation-size ' + str(dim)
+    cmd = 'deepwalk --format edgelist --input ' + input_file + ' --output ' + output_file + \
+          ' --walk-length ' + str(walk_len) + ' --window-size ' + str(win_size) + ' --number-walks ' \
+          + str(num_walk) + ' --representation-size ' + str(dim) + ' --workers ' + str(20)
 
-	print cmd;
-	os.system(cmd)
+    print(cmd);
+    os.system(cmd)
